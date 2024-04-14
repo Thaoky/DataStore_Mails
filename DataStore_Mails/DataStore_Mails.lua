@@ -4,15 +4,21 @@ July 16th, 2009
 --]]
 if not DataStore then return end
 
-local addonName = "DataStore_Mails"
+local addonName, addon = ...
+local thisCharacter
+local allCharacters
+local options
 
-_G[addonName] = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceConsole-3.0", "AceEvent-3.0", "AceComm-3.0", "AceSerializer-3.0", "AceTimer-3.0")
+local DataStore = DataStore
+local TableInsert, TableSort, format, strsplit, pairs, type, tonumber, time, date = table.insert, table.sort, format, strsplit, pairs, type, tonumber, time, date
+local GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText, GetItemInfo = GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText, GetItemInfo
 
-local addon = _G[addonName]
+local commPrefix = "DS_Mails"
+local isRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
 
-local L = LibStub("AceLocale-3.0"):GetLocale(addonName)
+local L = DataStore:GetLocale(addonName)
+local bit64 = LibStub("LibBit64")
 
-local commPrefix = "DS_Mails"		-- let's keep it a bit shorter than the addon name, this goes on a comm channel, a byte is a byte ffs :p
 local MAIL_EXPIRY = 30		-- Mails expire after 30 days
 
 -- Message types
@@ -24,59 +30,9 @@ local MSG_SENDMAIL_BODY							= 4
 local ICON_COIN = "Interface\\Icons\\INV_Misc_Coin_01"
 local ICON_NOTE = "Interface\\Icons\\INV_Misc_Note_01"
 
-local AddonDB_Defaults = {
-	global = {
-		Options = {
-			ScanMailBody = true,					-- by default, scan the body of a mail (this action marks it as read)
-			CheckMailExpiry = true,				-- check mail expiry or not
-			MailWarningThreshold = 5,
-			CheckMailExpiryAllAccounts = true,
-			CheckMailExpiryAllRealms = true,
-			ReportExpiredMailsToChat = true,
-		},
-		Characters = {
-			['*'] = {				-- ["Account.Realm.Name"] 
-				lastUpdate = nil,		-- last time the mail was checked for this char
-				lastVisitDate = nil,			-- in YYYY MM DD  hh:mm, for external apps
-				Mails = {
-					['*'] = {
-						icon = nil,
-						link = nil,
-						count = nil,
-						money = nil,
-						lastCheck = 0,		-- last time "THIS" mail was checked (can be different than that of the mailbox)
-						text = nil,
-						subject = nil,
-						sender = nil,
-						daysLeft = 0,
-						returned = nil,
-					}
-				},
-				MailCache = {				-- same structure as "Mail", but serves as a cache for mails sent by a guildmate, until the mail actually arrives in the real mailbox (1h delay)
-					['*'] = {
-						icon = nil,
-						link = nil,
-						count = nil,
-						money = nil,
-						lastCheck = 0,		-- last time "THIS" mail was checked (can be different than that of the mailbox)
-						text = nil,
-						subject = nil,
-						sender = nil,
-						daysLeft = 0,
-					}
-				},
-			}
-		}
-	}
-}
-
 -- *** Utility functions ***
 local function GetIDFromLink(link)
 	return tonumber(link:match("item:(%d+)"))
-end
-
-local function GetOption(option)
-	return addon.db.global.Options[option]
 end
 
 local function GetMailTable(character, index)
@@ -92,19 +48,12 @@ local function GetMailTable(character, index)
 	end
 end
 
-local function GuildWhisper(player, messageType, ...)
-	if DataStore:IsGuildMemberOnline(player) then
-		local serializedData = addon:Serialize(messageType, ...)
-		addon:SendCommMessage(commPrefix, serializedData, "WHISPER", player)
-	end
-end
-
 local function SendGuildMail(recipient, subject, body, index)
 	local player = DataStore:GetNameOfMain(recipient)
 	if not player then return end
 		
 	-- this mail is sent to "player", but is for alt  "recipient"
-	GuildWhisper(player, MSG_SENDMAIL_INIT, recipient)
+	DataStore:GuildWhisper(commPrefix, player, MSG_SENDMAIL_INIT, recipient)
 	
 	-- send attachments
 	local isSentMail = (index == nil) and true or false
@@ -120,7 +69,7 @@ local function SendGuildMail(recipient, subject, body, index)
 		end
 		
 		if item then
-			GuildWhisper(player, MSG_SENDMAIL_ATTACHMENT, icon, link, count)
+			DataStore:GuildWhisper(commPrefix, player, MSG_SENDMAIL_ATTACHMENT, icon, link, count)
 		end
 	end
 			
@@ -128,9 +77,9 @@ local function SendGuildMail(recipient, subject, body, index)
 	local money = GetSendMailMoney()
 	body = body or ""
 	if (money > 0) or (strlen(body) > 0) then
-		GuildWhisper(player, MSG_SENDMAIL_BODY, subject, body, money)
+		DataStore:GuildWhisper(commPrefix, player, MSG_SENDMAIL_BODY, subject, body, money)
 	end
-	GuildWhisper(player, MSG_SENDMAIL_END)
+	DataStore:GuildWhisper(commPrefix, player, MSG_SENDMAIL_END)
 end
 
 -- *** Scanning functions ***
@@ -152,7 +101,7 @@ local function SaveAttachments(character, index, sender, days, wasReturned)
 		end
 		
 		if item then
-			table.insert(character.Mails, {
+			TableInsert(character.Mails, {
 				["icon"] = icon,
 				["itemID"] = itemID,
 				["count"] = count,
@@ -167,9 +116,9 @@ local function SaveAttachments(character, index, sender, days, wasReturned)
 end
 
 local function ScanMailbox()
-	local character = addon.ThisCharacter
-	wipe(character.Mails)
-	wipe(character.MailCache)	-- fully clear the mail cache, since the mailbox will now be properly scanned
+	local char = thisCharacter
+	wipe(char.Mails)
+	wipe(char.MailCache)	-- fully clear the mail cache, since the mailbox will now be properly scanned
 	
 	local numItems = GetInboxNumItems()
 	if numItems == 0 then
@@ -179,11 +128,11 @@ local function ScanMailbox()
 	for i = 1, numItems do
 		local _, stationaryIcon, mailSender, mailSubject, mailMoney, _, days, numAttachments, _, wasReturned = GetInboxHeaderInfo(i)
 		if numAttachments then	-- treat attachments as separate entries
-			SaveAttachments(character, i, mailSender, days, wasReturned)
+			SaveAttachments(char, i, mailSender, days, wasReturned)
 		end
 
 		local inboxText
-		if GetOption("ScanMailBody") then
+		if options.ScanMailBody then
 			inboxText = GetInboxText(i)					-- this marks the mail as read
 		end
 		
@@ -194,7 +143,7 @@ local function ScanMailbox()
 			else
 				mailIcon = stationaryIcon
 			end
-			table.insert(character.Mails, {
+			TableInsert(char.Mails, {
 				icon = mailIcon,
 				money = mailMoney,
 				text = inboxText,
@@ -208,9 +157,9 @@ local function ScanMailbox()
 	end
 	
 	-- show mails with the lowest expiry first
-	table.sort(character.Mails, function(a, b) return a.daysLeft < b.daysLeft end)
+	TableSort(char.Mails, function(a, b) return a.daysLeft < b.daysLeft end)
 	
-	addon:SendMessage("DATASTORE_MAILBOX_UPDATED")
+	DataStore:Broadcast("DATASTORE_MAILBOX_UPDATED")
 end
 
 
@@ -223,21 +172,21 @@ end
 
 local function OnMailInboxUpdate()
 	-- process only one occurence of the event, right after MAIL_SHOW
-	addon:UnregisterEvent("MAIL_INBOX_UPDATE")
+	addon:StopListeningTo("MAIL_INBOX_UPDATE")
 	ScanMailbox()
 end
 
 local function OnMailClosed()
 	addon.isOpen = nil
-	addon:UnregisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
+	addon:StopListeningTo("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
 	
 	ScanMailbox()
 	
-	local character = addon.ThisCharacter
-	character.lastUpdate = time()
-	character.lastVisitDate = date("%Y/%m/%d %H:%M")
+	local char = thisCharacter
+	char.lastUpdate = time()
+	char.lastVisitDate = date("%Y/%m/%d %H:%M")	-- in YYYY MM DD  hh:mm, for external apps
 	
-	addon:UnregisterEvent("MAIL_SEND_INFO_UPDATE")
+	addon:StopListeningTo("MAIL_SEND_INFO_UPDATE")
 end
 
 local function OnManagerFrameHide(eventName, ...)
@@ -253,8 +202,8 @@ local function OnMailShow()
 	
 	CheckInbox()
 
-	addon:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", OnManagerFrameHide)
-	addon:RegisterEvent("MAIL_INBOX_UPDATE", OnMailInboxUpdate)
+	addon:ListenTo("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", OnManagerFrameHide)
+	addon:ListenTo("MAIL_INBOX_UPDATE", OnMailInboxUpdate)
 
 	-- create a temporary table to hold the attachments that will be sent, keep it local since the event is rare
 	addon.isOpen = true
@@ -367,7 +316,7 @@ end
 local function _SaveMailToCache(character, mailMoney, mailBody, mailSubject, mailSender)
 	local mailIcon = (mailMoney > 0) and ICON_COIN or ICON_NOTE
 	
-	table.insert(character.MailCache, {
+	TableInsert(character.MailCache, {
 		money = mailMoney,
 		icon = mailIcon,
 		text = mailBody,
@@ -379,7 +328,7 @@ local function _SaveMailToCache(character, mailMoney, mailBody, mailSubject, mai
 end
 
 local function _SaveMailAttachmentToCache(character, mailIcon, mailLink, mailCount, mailSender)
-	table.insert(character.MailCache, {
+	TableInsert(character.MailCache, {
 		icon = mailIcon,
 		link = mailLink,
 		count = mailCount,
@@ -398,46 +347,34 @@ local function _ClearMailboxEntries(character)
 	wipe(character.MailCache)
 end
 
-local mixins = {
-	GetMailboxLastVisit = _GetMailboxLastVisit,
-	GetMailItemCount = _GetMailItemCount,
-	GetNumMails = _GetNumMails,
-	GetMailInfo = _GetMailInfo,
-	IterateMails = _IterateMails,
-	GetMailSender = _GetMailSender,
-	GetMailExpiry = _GetMailExpiry,
-	GetMailSubject = _GetMailSubject,
-	GetNumExpiredMails = _GetNumExpiredMails,
-	SaveMailToCache = _SaveMailToCache,
-	SaveMailAttachmentToCache = _SaveMailAttachmentToCache,
-	IsMailBoxOpen = _IsMailBoxOpen,
-	ClearMailboxEntries = _ClearMailboxEntries,
-}
-
 -- *** Guild Comm ***
 local guildMailRecipient			-- name of the alt who receives a mail from a guildmate
 local guildMailRecipientKey		-- key of the alt who receives a mail from a guildmate
 
-local GuildCommCallbacks = {
+local commCallbacks = {
 	[MSG_SENDMAIL_INIT] = function(sender, recipient)
 			guildMailRecipient = recipient
 			guildMailRecipientKey = format("%s.%s.%s", DataStore.ThisAccount, DataStore.ThisRealm, recipient)
 		end,
 	[MSG_SENDMAIL_END] = function(sender)
 			if guildMailRecipient then
-				addon:SendMessage("DATASTORE_GUILD_MAIL_RECEIVED", sender, guildMailRecipient)
+				DataStore:Broadcast("DATASTORE_GUILD_MAIL_RECEIVED", sender, guildMailRecipient)
 			end
 			guildMailRecipient = nil
 			guildMailRecipientKey = nil
 		end,
 	[MSG_SENDMAIL_ATTACHMENT] = function(sender, icon, link, count)
-			local recipientTable = addon.db.global.Characters[guildMailRecipientKey]
+			local id = addon:GetCharacterID(guildMailRecipientKey)
+			local recipientTable = allCharacters[id]
+			
 			if recipientTable then
 				_SaveMailAttachmentToCache(recipientTable, icon, link, count, sender)
 			end
 		end,
 	[MSG_SENDMAIL_BODY] = function(sender, subject, body, money)
-			local recipientTable = addon.db.global.Characters[guildMailRecipientKey]
+			local id = addon:GetCharacterID(guildMailRecipientKey)
+			local recipientTable = allCharacters[id]
+
 			if recipientTable then
 				_SaveMailToCache(recipientTable, money, body, subject, sender)
 			end
@@ -445,87 +382,102 @@ local GuildCommCallbacks = {
 }
 
 local function CheckExpiries()
-	local allAccounts = GetOption("CheckMailExpiryAllAccounts")
-	local allRealms = GetOption("CheckMailExpiryAllRealms")
-	local threshold = GetOption("MailWarningThreshold")
-	local reportToChat = GetOption("ReportExpiredMailsToChat")
+	local allAccounts = options.CheckMailExpiryAllAccounts
+	local allRealms = options.CheckMailExpiryAllRealms
+	local threshold = options.MailWarningThreshold
 	local expiryFound
 	
-	local account, realm
-	for key, character in pairs(addon.db.global.Characters) do
+	local account, realm, charName
+	
+	DataStore:IterateCharacters(function(key, id)
 		account, realm, charName = strsplit(".", key)
 		
-		-- 2015-02-07 : The problem of expired items is here
-		-- It appears that in older versions, the addon managed to create an invalid character key
-		-- ex: Default.Realm.Player-Realm
-		-- This was due to being able to guild character from merged realms, who would then send mail to an alt.
-		-- These invalid keys should be fully deleted.
-		
-		local pos = string.find(charName, "-")		-- is there a '-' in the character name ? if yes, invalid key ! delete it !
-		if pos then
-			addon.db.global.Characters[key] = nil
-		else
-			if allAccounts or ((allAccounts == false) and (account == DataStore.ThisAccount)) then		-- all accounts, or only current and current was found
-				if allRealms or ((allRealms == false) and (realm == DataStore.ThisRealm)) then			-- all realms, or only current and current was found
-		
+		if allAccounts or ((allAccounts == false) and (account == DataStore.ThisAccount)) then		-- all accounts, or only current and current was found
+			if allRealms or ((allRealms == false) and (realm == DataStore.ThisRealm)) then			-- all realms, or only current and current was found
+				local character = allCharacters[id]
+				
+				if character then
 					-- detect return vs delete
 					local numExpiredMails = _GetNumExpiredMails(character, threshold)
 					if numExpiredMails > 0 then
 						expiryFound = true
-						if reportToChat then		-- if the option is active, report the name of the character to chat, one line per alt.
+						
+						-- if the option is active, report the name of the character to chat, one line per alt.
+						if options.ReportExpiredMailsToChat then
 							addon:Print(format(L["EXPIRED_EMAILS_WARNING"], charName, realm))
 						end
-						addon:SendMessage("DATASTORE_MAIL_EXPIRY", character, key, threshold, numExpiredMails)
+						DataStore:Broadcast("DATASTORE_MAIL_EXPIRY", character, key, threshold, numExpiredMails)
 					end
 				end
 			end
 		end
-	end
+	end)
 	
 	if expiryFound then
 		-- global expiry message, register this one if your addon just wants to know that at least one mail has expired, and you don't care which.
-		addon:SendMessage("DATASTORE_GLOBAL_MAIL_EXPIRY", threshold)
+		DataStore:Broadcast("DATASTORE_GLOBAL_MAIL_EXPIRY", threshold)
 	end
 end
 
-function addon:OnInitialize()
-	addon.db = LibStub("AceDB-3.0"):New(format("%sDB", addonName), AddonDB_Defaults)
+DataStore:OnAddonLoaded(addonName, function()
+	DataStore:RegisterModule({
+		addon = addon,
+		addonName = addonName,
+		rawTables = {
+			"DataStore_Mails_Options"
+		},
+		characterTables = {
+			["DataStore_Mails_Characters"] = {
+				GetMailboxLastVisit = _GetMailboxLastVisit,
+				GetMailItemCount = _GetMailItemCount,
+				GetNumMails = _GetNumMails,
+				GetMailInfo = _GetMailInfo,
+				IterateMails = _IterateMails,
+				GetMailSender = _GetMailSender,
+				GetMailExpiry = _GetMailExpiry,
+				GetMailSubject = _GetMailSubject,
+				GetNumExpiredMails = _GetNumExpiredMails,
+				SaveMailToCache = _SaveMailToCache,
+				SaveMailAttachmentToCache = _SaveMailAttachmentToCache,
+				ClearMailboxEntries = _ClearMailboxEntries,
+			},
+		},
+	})
 
-	DataStore:RegisterModule(addonName, addon, mixins)
-	DataStore:SetGuildCommCallbacks(commPrefix, GuildCommCallbacks)
+	thisCharacter = DataStore:GetCharacterDB("DataStore_Mails_Characters", true)
+	thisCharacter.Mails = thisCharacter.Mails or {}
+	thisCharacter.MailCache = thisCharacter.MailCache or {}
 	
-	DataStore:SetCharacterBasedMethod("GetMailboxLastVisit")
-	DataStore:SetCharacterBasedMethod("GetMailItemCount")
-	DataStore:SetCharacterBasedMethod("GetNumMails")
-	DataStore:SetCharacterBasedMethod("GetMailInfo")
-	DataStore:SetCharacterBasedMethod("IterateMails")
-	DataStore:SetCharacterBasedMethod("GetMailSender")
-	DataStore:SetCharacterBasedMethod("GetMailExpiry")
-	DataStore:SetCharacterBasedMethod("GetMailSubject")
-	DataStore:SetCharacterBasedMethod("GetNumExpiredMails")
-	DataStore:SetCharacterBasedMethod("SaveMailToCache")
-	DataStore:SetCharacterBasedMethod("SaveMailAttachmentToCache")
-	DataStore:SetCharacterBasedMethod("ClearMailboxEntries")
-	
-	addon:RegisterComm(commPrefix, DataStore:GetGuildCommHandler())
-end
+	allCharacters = DataStore_Mails_Characters
 
-function addon:OnEnable()
-	addon:RegisterEvent("MAIL_SHOW", OnMailShow)
-	addon:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnManagerFrameShow)
-	addon:RegisterEvent("BAG_UPDATE", OnBagUpdate)
+	DataStore:RegisterMethod(addon, "IsMailBoxOpen", _IsMailBoxOpen)
 	
-	addon:SetupOptions()
-	if GetOption("CheckMailExpiry") then
-		addon:ScheduleTimer(CheckExpiries, 5)	-- check mail expiries 5 seconds later, to decrease the load at startup
+	DataStore:SetGuildCommCallbacks(commPrefix, commCallbacks)
+	DataStore:OnGuildComm(commPrefix, DataStore:GetGuildCommHandler())
+end)
+
+DataStore:OnPlayerLogin(function()
+	options = DataStore_Mails_Options
+	
+	options.ScanMailBody = options.ScanMailBody or true					-- by default, scan the body of a mail (this action marks it as read)
+	options.CheckMailExpiry = options.CheckMailExpiry or true				-- check mail expiry or not
+	options.MailWarningThreshold = options.MailWarningThreshold or 5
+	options.CheckMailExpiryAllAccounts = options.CheckMailExpiryAllAccounts or true
+	options.CheckMailExpiryAllRealms = options.CheckMailExpiryAllRealms or true
+	options.ReportExpiredMailsToChat = options.ReportExpiredMailsToChat or true
+
+	addon:ListenTo("MAIL_SHOW", OnMailShow)
+	addon:ListenTo("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnManagerFrameShow)
+	addon:ListenTo("BAG_UPDATE", OnBagUpdate)
+	
+	if not isRetail then
+		addon:SetupOptions()
 	end
-end
-
-function addon:OnDisable()
-	addon:UnregisterEvent("MAIL_SHOW")
-	addon:UnregisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
-	addon:UnregisterEvent("BAG_UPDATE")
-end
+	
+	if options.CheckMailExpiry then
+		C_Timer.After(5, CheckExpiries)	-- check mail expiries 5 seconds later, to decrease the load at startup
+	end
+end)
 
 
 -- *** Hooks ***
@@ -533,14 +485,15 @@ end
 local Orig_SendMail = SendMail
 
 local function SendOwnMail(characterKey, subject, body)
-	local character = addon.db.global.Characters[characterKey]
+	local id = DataStore:GetCharacterID(characterKey)
+	local character = DataStore_Mails_Characters[id]
 	
 	SaveAttachments(character, nil, UnitName("player"), MAIL_EXPIRY)
 	
 	-- .. then save the mail itself + gold if any
 	local moneySent = GetSendMailMoney()
 	if (moneySent > 0) or (strlen(body) > 0) then
-		table.insert(character.Mails, {
+		TableInsert(character.Mails, {
 			money = moneySent,
 			icon = (moneySent > 0) and ICON_COIN or ICON_NOTE,
 			text = body,
@@ -556,7 +509,7 @@ local function SendOwnMail(characterKey, subject, body)
 		character.lastUpdate = time()
 	end
 	
-	table.sort(character.Mails, function(a, b)		-- show mails with the lowest expiry first
+	TableSort(character.Mails, function(a, b)		-- show mails with the lowest expiry first
 		return a.daysLeft < b.daysLeft
 	end)
 end
@@ -599,7 +552,8 @@ hooksecurefunc("SendMail", function(recipient, subject, body, ...)
 end)
 
 local function ReturnOwnMail(characterKey, index, mailSubject, mailMoney, stationaryIcon, numAttachments)
-	local character = addon.db.global.Characters[characterKey]
+	local id = DataStore:GetCharacterID(characterKey)
+	local character = DataStore_Mails_Characters[id]
 
 	if numAttachments then	-- treat attachments as separate entries
 		SaveAttachments(character, index, UnitName("player"), MAIL_EXPIRY, true)
@@ -609,7 +563,7 @@ local function ReturnOwnMail(characterKey, index, mailSubject, mailMoney, statio
 	
 	if (mailMoney > 0) or inboxText then			-- if there's money or text .. save the entry
 		
-		table.insert(character.Mails, {
+		TableInsert(character.Mails, {
 			icon = (mailMoney > 0) and ICON_COIN or stationaryIcon,
 			money = mailMoney,
 			text = inboxText,

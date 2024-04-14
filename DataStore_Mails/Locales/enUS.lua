@@ -1,9 +1,5 @@
-local debug = false
---[===[@debug@
-debug = true
---@end-debug@]===]
-
-local L = LibStub("AceLocale-3.0"):NewLocale("DataStore_Mails", "enUS", true, debug)
+local addonName = ...
+local L = DataStore:SetDefaultLocale(addonName, "enUS")
 
 L["EXPIRED_EMAILS_WARNING"] = "%s (%s) has expired (or about to expire) mails "
 L["EXPIRY_ALL_ACCOUNTS_DISABLED"] = "Only the current account will be taken into consideration; imported accounts will be ignored."
@@ -27,4 +23,3 @@ L["SCAN_MAIL_BODY_ENABLED"] = "The body of each mail will be read when the mailb
 L["SCAN_MAIL_BODY_LABEL"] = "Scan mail body (marks it as read)"
 L["SCAN_MAIL_BODY_TITLE"] = "Scan Mail Body"
 L["Warn when mail expires in less days than this value"] = true
-

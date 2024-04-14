@@ -1,5 +1,5 @@
-local L = LibStub("AceLocale-3.0"):NewLocale( "DataStore_Mails", "frFR" )
-
+local addonName = ...
+local L = DataStore:SetLocale(addonName, "frFR")
 if not L then return end
 
 L["EXPIRED_EMAILS_WARNING"] = "%s (%s) a du courrier expiré (ou proche de l'expiration)"

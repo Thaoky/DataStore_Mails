@@ -1,5 +1,5 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("DataStore_Mails", "esES")
-
+local addonName = ...
+local L = DataStore:SetLocale(addonName, "esES")
 if not L then return end
 
 L["EXPIRED_EMAILS_WARNING"] = "%s (%s) tiene correos caducados (o a punto de caducar)"

@@ -14,7 +14,7 @@
 				</Anchors>
 				<Scripts>
 					<OnValueChanged>
-						local L = LibStub("AceLocale-3.0"):GetLocale("DataStore_Mails")
+						local L = DataStore:GetLocale("DataStore_Mails")
 						
 						local name = self:GetName()
 						local value = math.floor(self:GetValue())

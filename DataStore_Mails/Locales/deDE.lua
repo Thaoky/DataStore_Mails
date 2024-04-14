@@ -1,5 +1,5 @@
-local L = LibStub("AceLocale-3.0"):NewLocale( "DataStore_Mails", "deDE" )
-
+local addonName = ...
+local L = DataStore:SetLocale(addonName, "deDE")
 if not L then return end
 
 L["EXPIRED_EMAILS_WARNING"] = "%s (%s) hat verfallene (oder bald verfallende) Post"
@@ -24,4 +24,3 @@ L["SCAN_MAIL_BODY_ENABLED"] = "Der Text jeder Sendung wird gelesen, wenn der Bri
 L["SCAN_MAIL_BODY_LABEL"] = "Brieftext scannen (markiert als gelesen)"
 L["SCAN_MAIL_BODY_TITLE"] = "Brieftext scannen"
 L["Warn when mail expires in less days than this value"] = "Warnen, wenn Post verfällt in weniger Tagen als "
-
