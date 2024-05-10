@@ -457,14 +457,14 @@ DataStore:OnAddonLoaded(addonName, function()
 end)
 
 DataStore:OnPlayerLogin(function()
-	options = DataStore_Mails_Options
-	
-	options.ScanMailBody = options.ScanMailBody or true					-- by default, scan the body of a mail (this action marks it as read)
-	options.CheckMailExpiry = options.CheckMailExpiry or true				-- check mail expiry or not
-	options.MailWarningThreshold = options.MailWarningThreshold or 5
-	options.CheckMailExpiryAllAccounts = options.CheckMailExpiryAllAccounts or true
-	options.CheckMailExpiryAllRealms = options.CheckMailExpiryAllRealms or true
-	options.ReportExpiredMailsToChat = options.ReportExpiredMailsToChat or true
+	options = DataStore:SetDefaults("DataStore_Mails_Options", {
+		ScanMailBody = true,			-- by default, scan the body of a mail (this action marks it as read)
+		CheckMailExpiry = true,		-- check mail expiry or not
+		MailWarningThreshold = 5,
+		CheckMailExpiryAllAccounts = true,
+		CheckMailExpiryAllRealms = true,
+		ReportExpiredMailsToChat = true,
+	})	
 
 	addon:ListenTo("MAIL_SHOW", OnMailShow)
 	addon:ListenTo("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnManagerFrameShow)
