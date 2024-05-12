@@ -19,7 +19,10 @@
 						local name = self:GetName()
 						local value = math.floor(self:GetValue())
 						_G[name .. "Text"]:SetText(L["EXPIRY_CHECK_LABEL"] .. " (" .. value ..")");
-						DataStore:SetOption("DataStore_Mails", "MailWarningThreshold", value)
+						
+						if DataStore_Mails_Options then
+							DataStore_Mails_Options.MailWarningThreshold = value
+						end
 					</OnValueChanged>
 				</Scripts>
 			</Slider>
