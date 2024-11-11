@@ -313,6 +313,78 @@ local function _GetNumExpiredMails(character, threshold)
 	return count
 end
 
+local function _GetNumReturnsOnExpiry(character)
+	local count = 0
+	
+	for i = 1, _GetNumMails(character) do
+		local data = GetMailTable(character, i)
+		local seconds = select(2, _GetMailExpiry(character, i))
+		
+		if seconds >= 0 and not data.returned then
+			count = count + 1
+		end
+	end
+	
+	return count
+end
+
+local function _GetClosestReturnsOnExpiry(character)
+	local closest
+	
+	for i = 1, _GetNumMails(character) do
+		local data = GetMailTable(character, i)
+		local seconds = select(2, _GetMailExpiry(character, i))
+		
+		if seconds >= 0 and not data.returned then
+			if not closest then
+				closest = seconds
+			else
+				if seconds < closest then
+					closest = seconds
+				end
+			end
+		end
+	end
+	
+	return closest
+end
+
+local function _GetNumDeletionOnExpiry(character)
+	local count = 0
+	
+	for i = 1, _GetNumMails(character) do
+		local data = GetMailTable(character, i)
+		local seconds = select(2, _GetMailExpiry(character, i))
+		
+		if seconds >= 0 and data.returned then
+			count = count + 1
+		end
+	end
+	
+	return count
+end
+
+local function _GetClosestDeletionOnExpiry(character)
+	local closest
+	
+	for i = 1, _GetNumMails(character) do
+		local data = GetMailTable(character, i)
+		local seconds = select(2, _GetMailExpiry(character, i))
+		
+		if seconds >= 0 and data.returned then
+			if not closest then
+				closest = seconds
+			else
+				if seconds < closest then
+					closest = seconds
+				end
+			end
+		end
+	end
+	
+	return closest
+end
+
 local function _SaveMailToCache(character, mailMoney, mailBody, mailSubject, mailSender)
 	local mailIcon = (mailMoney > 0) and ICON_COIN or ICON_NOTE
 	
@@ -437,6 +509,10 @@ DataStore:OnAddonLoaded(addonName, function()
 				GetMailExpiry = _GetMailExpiry,
 				GetMailSubject = _GetMailSubject,
 				GetNumExpiredMails = _GetNumExpiredMails,
+				GetNumReturnsOnExpiry = _GetNumReturnsOnExpiry,
+				GetClosestReturnsOnExpiry = _GetClosestReturnsOnExpiry,
+				GetNumDeletionOnExpiry = _GetNumDeletionOnExpiry,
+				GetClosestDeletionOnExpiry = _GetClosestDeletionOnExpiry,
 				SaveMailToCache = _SaveMailToCache,
 				SaveMailAttachmentToCache = _SaveMailAttachmentToCache,
 				ClearMailboxEntries = _ClearMailboxEntries,
