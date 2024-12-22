@@ -1,5 +1,5 @@
 local addonName = ...
-local L = DataStore:SetLocale(addonName, "zhTW")
+local L = AddonFactory:SetLocale(addonName, "zhTW")
 if not L then return end
 
 L["EXPIRY_ALL_ACCOUNTS_DISABLED"] = "只有目前帳戶將予以考慮;滙入的帳戶將被忽略."

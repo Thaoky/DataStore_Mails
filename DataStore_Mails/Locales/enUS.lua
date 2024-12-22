@@ -1,5 +1,5 @@
 local addonName = ...
-local L = DataStore:SetDefaultLocale(addonName, "enUS")
+local L = AddonFactory:SetDefaultLocale(addonName, "enUS")
 
 L["EXPIRED_EMAILS_WARNING"] = "%s (%s) has expired (or about to expire) mails "
 L["EXPIRY_ALL_ACCOUNTS_DISABLED"] = "Only the current account will be taken into consideration; imported accounts will be ignored."

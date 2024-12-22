@@ -9,7 +9,7 @@ function addon:SetupOptions()
 	DataStore:AddOptionCategory(f, addonName, "DataStore")
 
 	-- localize options
-	local L = DataStore:GetLocale(addonName)
+	local L = AddonFactory:GetLocale(addonName)
 	
 	DataStoreMailOptions_SliderMailExpiry.tooltipText = L["Warn when mail expires in less days than this value"]
 	DataStoreMailOptions_SliderMailExpiryLow:SetText("1")

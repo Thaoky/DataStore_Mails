@@ -1,5 +1,5 @@
 local addonName = ...
-local L = DataStore:SetLocale(addonName, "frFR")
+local L = AddonFactory:SetLocale(addonName, "frFR")
 if not L then return end
 
 L["EXPIRED_EMAILS_WARNING"] = "%s (%s) a du courrier expiré (ou proche de l'expiration)"

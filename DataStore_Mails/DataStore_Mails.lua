@@ -16,7 +16,7 @@ local GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems,
 local commPrefix = "DS_Mails"
 local isRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
 
-local L = DataStore:GetLocale(addonName)
+local L = AddonFactory:GetLocale(addonName)
 local bit64 = LibStub("LibBit64")
 
 local MAIL_EXPIRY = 30		-- Mails expire after 30 days
@@ -491,7 +491,7 @@ local function CheckExpiries()
 	end
 end
 
-DataStore:OnAddonLoaded(addonName, function()
+AddonFactory:OnAddonLoaded(addonName, function()
 	DataStore:RegisterModule({
 		addon = addon,
 		addonName = addonName,
@@ -532,7 +532,7 @@ DataStore:OnAddonLoaded(addonName, function()
 	DataStore:OnGuildComm(commPrefix, DataStore:GetGuildCommHandler())
 end)
 
-DataStore:OnPlayerLogin(function()
+AddonFactory:OnPlayerLogin(function()
 	options = DataStore:SetDefaults("DataStore_Mails_Options", {
 		ScanMailBody = true,			-- by default, scan the body of a mail (this action marks it as read)
 		CheckMailExpiry = true,		-- check mail expiry or not
