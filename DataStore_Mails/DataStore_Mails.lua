@@ -159,7 +159,7 @@ local function ScanMailbox()
 	-- show mails with the lowest expiry first
 	TableSort(char.Mails, function(a, b) return a.daysLeft < b.daysLeft end)
 	
-	DataStore:Broadcast("DATASTORE_MAILBOX_UPDATED")
+	AddonFactory:Broadcast("DATASTORE_MAILBOX_UPDATED")
 end
 
 
@@ -430,7 +430,7 @@ local commCallbacks = {
 		end,
 	[MSG_SENDMAIL_END] = function(sender)
 			if guildMailRecipient then
-				DataStore:Broadcast("DATASTORE_GUILD_MAIL_RECEIVED", sender, guildMailRecipient)
+				AddonFactory:Broadcast("DATASTORE_GUILD_MAIL_RECEIVED", sender, guildMailRecipient)
 			end
 			guildMailRecipient = nil
 			guildMailRecipientKey = nil
@@ -478,7 +478,7 @@ local function CheckExpiries()
 						if options.ReportExpiredMailsToChat then
 							addon:Print(format(L["EXPIRED_EMAILS_WARNING"], charName, realm))
 						end
-						DataStore:Broadcast("DATASTORE_MAIL_EXPIRY", character, key, threshold, numExpiredMails)
+						AddonFactory:Broadcast("DATASTORE_MAIL_EXPIRY", character, key, threshold, numExpiredMails)
 					end
 				end
 			end
@@ -487,7 +487,7 @@ local function CheckExpiries()
 	
 	if expiryFound then
 		-- global expiry message, register this one if your addon just wants to know that at least one mail has expired, and you don't care which.
-		DataStore:Broadcast("DATASTORE_GLOBAL_MAIL_EXPIRY", threshold)
+		AddonFactory:Broadcast("DATASTORE_GLOBAL_MAIL_EXPIRY", threshold)
 	end
 end
 
