@@ -295,7 +295,7 @@ local function _GetMailSubject(character, index)
 	
 	if link then
 		local id = GetIDFromLink(link)
-		name = GetItemInfo(id)
+		name = C_Item.GetItemInfo(id)
 	end
 	
 	return name

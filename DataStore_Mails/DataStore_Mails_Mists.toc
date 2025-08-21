@@ -1,4 +1,4 @@
-## Interface: 110200
+## Interface: 50500
 ## Title: DataStore_Mails
 ## IconTexture: Interface\Icons\garrison_building_storehouse
 
@@ -9,6 +9,7 @@
 ## SavedVariables: DataStore_Mails_Characters, DataStore_Mails_Options
 ## X-Category: Interface Enhancements
 
-Locale.xml
+locale.xml
 
 DataStore_Mails.lua
+Options.xml
