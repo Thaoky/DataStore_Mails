@@ -1,10 +1,10 @@
-## Interface: 110200
+## Interface: 110205
 ## Title: DataStore_Mails
 ## IconTexture: Interface\Icons\garrison_building_storehouse
 
 ## Notes: Stores information about character mails
 ## Author: Thaoky (EU-Marécages de Zangar)
-## Version: 2025.09.25
+## Version: 2025.10.19
 ## Dependencies: AddonFactory, DataStore
 ## SavedVariables: DataStore_Mails_Characters, DataStore_Mails_Options
 ## X-Category: Interface Enhancements
