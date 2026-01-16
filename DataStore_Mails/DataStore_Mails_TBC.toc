@@ -1,0 +1,15 @@
+## Interface: 20505
+## Title: DataStore_Mails
+## IconTexture: Interface\Icons\garrison_building_storehouse
+
+## Notes: Stores information about character mails
+## Author: Thaoky (EU-Marécages de Zangar)
+## Version: 2026.01.16
+## Dependencies: DataStore
+## SavedVariables: DataStore_Mails_Characters, DataStore_Mails_Options
+## X-Category: Interface Enhancements
+
+locale.xml
+
+DataStore_Mails.lua
+Options.xml
