@@ -436,7 +436,7 @@ local commCallbacks = {
 			guildMailRecipientKey = nil
 		end,
 	[MSG_SENDMAIL_ATTACHMENT] = function(sender, icon, link, count)
-			local id = addon:GetCharacterID(guildMailRecipientKey)
+			local id = DataStore:GetCharacterID(guildMailRecipientKey)
 			local recipientTable = allCharacters[id]
 			
 			if recipientTable then
@@ -444,7 +444,7 @@ local commCallbacks = {
 			end
 		end,
 	[MSG_SENDMAIL_BODY] = function(sender, subject, body, money)
-			local id = addon:GetCharacterID(guildMailRecipientKey)
+			local id = DataStore:GetCharacterID(guildMailRecipientKey)
 			local recipientTable = allCharacters[id]
 
 			if recipientTable then
