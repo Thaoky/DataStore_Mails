@@ -655,6 +655,7 @@ end
 hooksecurefunc("ReturnInboxItem", function(index, ...)
 	local _, stationaryIcon, mailSender, mailSubject, mailMoney, _, _, numAttachments = GetInboxHeaderInfo(index)
 	local isRecipientAnAlt
+	if not mailSender then return end -- Bad read? Blizzard error? It happens, so bail if needed
 
 	local recipientName, recipientRealm = strsplit("-", mailSender)
 
