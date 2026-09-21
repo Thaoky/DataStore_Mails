@@ -295,7 +295,7 @@ local function _GetMailSubject(character, index)
 	
 	if link then
 		local id = GetIDFromLink(link)
-		name = C_Item.GetItemInfo(id)
+		name = nil; if C_Item and C_Item.GetItemInfo then local ok, n = pcall(C_Item.GetItemInfo, id); if ok then name = n end end
 	end
 	
 	return name
