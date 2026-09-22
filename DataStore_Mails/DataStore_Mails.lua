@@ -11,7 +11,7 @@ local options
 
 local DataStore = DataStore
 local TableInsert, TableSort, format, strsplit, pairs, type, tonumber, time, date = table.insert, table.sort, format, strsplit, pairs, type, tonumber, time, date
-local GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText, GetItemInfo = GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText, GetItemInfo
+local GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText = GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText
 
 local commPrefix = "DS_Mails"
 local isRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
