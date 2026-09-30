@@ -564,7 +564,7 @@ local function SendOwnMail(characterKey, subject, body)
 	local id = DataStore:GetCharacterID(characterKey)
 	local character = DataStore_Mails_Characters[id]
 	
-	SaveAttachments(character, nil, UnitName("player"), MAIL_EXPIRY)
+	SaveAttachments(character, nil, AddonFactory:GetPlayerName(), MAIL_EXPIRY)
 	
 	-- .. then save the mail itself + gold if any
 	local moneySent = GetSendMailMoney()
@@ -574,7 +574,7 @@ local function SendOwnMail(characterKey, subject, body)
 			icon = (moneySent > 0) and ICON_COIN or ICON_NOTE,
 			text = body,
 			subject = subject,
-			sender = UnitName("player"),
+			sender = AddonFactory:GetPlayerName(),
 			lastCheck = time(),
 			daysLeft = MAIL_EXPIRY,
 		} )
@@ -632,7 +632,7 @@ local function ReturnOwnMail(characterKey, index, mailSubject, mailMoney, statio
 	local character = DataStore_Mails_Characters[id]
 
 	if numAttachments then	-- treat attachments as separate entries
-		SaveAttachments(character, index, UnitName("player"), MAIL_EXPIRY, true)
+		SaveAttachments(character, index, AddonFactory:GetPlayerName(), MAIL_EXPIRY, true)
 	end
 
 	local inboxText = GetInboxText(index)		-- this marks the mail as read, no problem here since the mail is returned anyway
@@ -644,7 +644,7 @@ local function ReturnOwnMail(characterKey, index, mailSubject, mailMoney, statio
 			money = mailMoney,
 			text = inboxText,
 			subject = mailSubject,
-			sender = UnitName("player"),
+			sender = AddonFactory:GetPlayerName(),
 			lastCheck = time(),
 			daysLeft = MAIL_EXPIRY,
 			returned = true,				-- this is the mail we're returning, so true
