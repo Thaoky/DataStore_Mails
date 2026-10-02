@@ -14,7 +14,7 @@ local TableInsert, TableSort, format, strsplit, pairs, type, tonumber, time, dat
 local GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText = GetSendMailItemLink, GetInboxItemLink, GetSendMailMoney, GetInboxNumItems, GetInboxHeaderInfo, GetInboxText
 
 local commPrefix = "DS_Mails"
-local isRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
+local isRetail = AddonFactory.isRetail
 
 local L = AddonFactory:GetLocale(addonName)
 local bit64 = LibStub("LibBit64")
@@ -546,7 +546,7 @@ AddonFactory:OnPlayerLogin(function()
 	addon:ListenTo("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", OnManagerFrameShow)
 	addon:ListenTo("BAG_UPDATE", OnBagUpdate)
 	
-	if not isRetail then
+	if not isRetail and not AddonFactory.isForever then
 		addon:SetupOptions()
 	end
 	
